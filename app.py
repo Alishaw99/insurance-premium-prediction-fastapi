@@ -1,10 +1,11 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 
 from schema.user_input import UserInput
 from schema.prediction_response import PredictionResponse
 from model.predict import predict_output, model, MODEL_VERSION
 
-app = FastAPI()
+app = FastAPI(title="Insurance Premium Prediction API")
 
 
 @app.get("/")
@@ -15,27 +16,30 @@ def home():
 @app.get("/health")
 def health_check():
     return {
-        "status": "OK",
+        "status": "OK" if model is not None else "unavailable",
         "version": MODEL_VERSION,
         "model_loaded": model is not None,
     }
 
 
-@app.post("/predict", response_model=PredictionResponse)
+@app.post('/predict', response_model=PredictionResponse)
 def predict_premium(data: UserInput):
+
     user_input = {
-        "bmi": data.bmi,
-        "age_group": data.age_group,
-        "lifestyle_risk": data.lifestyle_risk,
-        "city_tier": data.city_tier,
-        "income_lpa": data.income_lpa,
-        "occupation": data.occupation,
+        'bmi': data.bmi,
+        'age_group': data.age_group,
+        'lifestyle_risk': data.lifestyle_risk,
+        'city_tier': data.city_tier,
+        'income_lpa': data.income_lpa,
+        'occupation': data.occupation
     }
 
     try:
-        return predict_output(user_input)
-    except Exception as error:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Prediction failed: {error}",
-        ) from error
+
+        prediction = predict_output(user_input)
+
+        return JSONResponse(status_code=200, content={'response': prediction})
+    
+    except Exception as e:
+
+        return JSONResponse(status_code=500, content=str(e))

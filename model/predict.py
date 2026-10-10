@@ -3,30 +3,33 @@ from pathlib import Path
 
 import pandas as pd
 
-# Application model version; change when you replace the model.
 MODEL_VERSION = "1.0.0"
 
+# Load the model relative to this file.
 MODEL_PATH = Path(__file__).resolve().parent / "model.pkl"
 
-with MODEL_PATH.open("rb") as file:
-    model = pickle.load(file)
+with MODEL_PATH.open("rb") as f:
+    model = pickle.load(f)
 
 
 def predict_output(user_input: dict) -> dict:
-    input_df = pd.DataFrame([user_input])
+    df = pd.DataFrame([user_input])
 
-    prediction = model.predict(input_df)[0]
-    probabilities = model.predict_proba(input_df)[0]
+    predicted_class = model.predict(df)[0]
+    probabilities = model.predict_proba(df)[0]
 
-    class_probabilities = {
+    class_probs = {
         str(label): float(probability)
         for label, probability in zip(model.classes_, probabilities)
     }
 
-    predicted_category = str(prediction)
+    predicted_category = str(predicted_class)
 
     return {
         "predicted_category": predicted_category,
-        "confidence": class_probabilities[predicted_category],
-        "class_probabilities": class_probabilities,
+        "confidence": round(class_probs[predicted_category], 4),
+        "class_probabilities": {
+            label: round(probability, 4)
+            for label, probability in class_probs.items()
+        },
     }
